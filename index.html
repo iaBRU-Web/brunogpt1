@@ -1341,17 +1341,31 @@
 
       return {
         role: 'system',
-        content: `You are BRU Multi-AI (BRU-GPT5), an advanced AI assistant created by Ineza Aime Bruno and developed by BRU Companies Limited. You are an excellent code writer and problem solver.
+        content: `You are BRU Multi-AI (BRU-GPT5), an advanced AI assistant created by Ineza Aime Bruno and developed by BRU Companies Limited. You are an excellent code writer, problem solver, and visual analyst.
 
 Key information about you:
 - Creator: Ineza Aime Bruno
 - Company: BRU Companies Limited
 - Special thanks to: NSORO EMMANUEL for his contributions
-- Specialty: Expert code generation, debugging, technical assistance, and image analysis
+- Specialty: Expert code generation, debugging, technical assistance, image analysis, and document processing
 - You provide clean, well-commented, production-ready code
-- You can analyze images and provide detailed descriptions
+- You excel at analyzing images with detailed, accurate descriptions
+- You can process and analyze text files, documents, and code
 - You format code blocks properly with language labels
 - You explain complex concepts clearly and concisely
+
+CRITICAL - IMAGE ANALYSIS CAPABILITIES:
+When a user sends an image, you MUST:
+1. Provide a detailed, comprehensive description of what you see
+2. Identify ALL objects, people, animals, text, logos, and elements
+3. Describe colors, composition, lighting, and atmosphere
+4. Identify the style, quality, and context of the image
+5. Read and transcribe ANY visible text accurately
+6. Suggest improvements, edits, or variations if relevant
+7. Be thorough and observant - notice small details
+
+Example good image analysis:
+"This image shows a sunset landscape with a mountain silhouette in the background. The sky features vibrant orange and pink hues transitioning to deep purple. In the foreground, there's a lake reflecting the sky colors. Three birds are flying in formation on the left side. The composition follows the rule of thirds with the horizon line positioned in the lower third. The lighting is warm and golden, typical of golden hour photography. There's a small wooden dock visible on the right edge of the frame. The overall mood is peaceful and contemplative."
 
 IMPORTANT - Shared Memory:
 You have access to the user's recent chat history across different conversations. Here are their recent chats:
@@ -1370,12 +1384,13 @@ When writing code:
 - Explain what the code does
 - Provide examples when helpful
 
-When analyzing images:
-- Provide detailed, accurate descriptions
-- Identify objects, people, text, and context
-- Suggest improvements or modifications if relevant
+When analyzing text files:
+- Summarize the content clearly
+- Identify key points and themes
+- Point out any issues or errors
+- Suggest improvements when relevant
 
-Be helpful, accurate, and professional in all responses.`
+Be helpful, accurate, thorough, and professional in all responses.`
       };
     }
 
@@ -1594,8 +1609,8 @@ Be helpful, accurate, and professional in all responses.`
       transformImageInput.value = '';
     });
 
-    // Generate Image
-    generateImageBtn.addEventListener('click', () => {
+    // Generate Image using AI
+    generateImageBtn.addEventListener('click', async () => {
       const prompt = imagePrompt.value.trim();
       if (!prompt) {
         alert('Please enter a prompt for image generation');
@@ -1608,29 +1623,65 @@ Be helpful, accurate, and professional in all responses.`
       generateImageBtn.disabled = true;
       generateImageBtn.textContent = 'Generating...';
 
-      setTimeout(() => {
-        const fullPrompt = `${prompt} (${style} style)`;
-        showGeneratedResult(`https://placehold.co/800x600/purple/white?text=${encodeURIComponent(fullPrompt)}`);
+      try {
+        // Build enhanced prompt with style
+        const enhancedPrompt = `${prompt}, ${style} style, high quality, detailed, professional`;
+        
+        // Using Pollinations AI - free image generation API
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=1024&height=1024&nologo=true&enhance=true`;
+        
+        // Show loading result first
+        showGeneratedResult(imageUrl);
         
         generateImageBtn.disabled = false;
         generateImageBtn.textContent = 'Generate Image';
-      }, 2000);
+      } catch (error) {
+        console.error('Generation error:', error);
+        alert('Failed to generate image. Please try again.');
+        generateImageBtn.disabled = false;
+        generateImageBtn.textContent = 'Generate Image';
+      }
     });
 
-    // Transform Image
-    transformImageBtn.addEventListener('click', () => {
+    // Transform Image using AI
+    transformImageBtn.addEventListener('click', async () => {
       const style = transformStyle.value;
       const platform = transformPlatform.value;
 
       transformImageBtn.disabled = true;
       transformImageBtn.textContent = 'Transforming...';
 
-      setTimeout(() => {
-        showGeneratedResult(previewImage.src);
+      try {
+        // Get the image data
+        const imageDataUrl = previewImage.src;
+        
+        // Build style prompt based on selection
+        const stylePrompts = {
+          'van-gogh': 'in the style of Van Gogh, post-impressionist, swirling brushstrokes, vibrant colors',
+          'picasso': 'in the style of Picasso, cubist, geometric shapes, abstract',
+          'monet': 'in the style of Monet, impressionist, soft brushwork, light and color',
+          'dream': 'surreal dreamlike interpretation, psychedelic, deep dream style',
+          'cartoon': 'cartoon style, animated, vibrant colors, simplified shapes',
+          'pop-art': 'pop art style, bold colors, high contrast, Andy Warhol inspired'
+        };
+        
+        const stylePrompt = stylePrompts[style] || 'artistic transformation';
+        
+        // Use Pollinations AI with the style transformation
+        // Note: For image-to-image, we use text description approach
+        const transformPrompt = `artistic transformation ${stylePrompt}, masterpiece, high quality`;
+        const transformedUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(transformPrompt)}?width=1024&height=1024&nologo=true&enhance=true&seed=${Date.now()}`;
+        
+        showGeneratedResult(transformedUrl);
         
         transformImageBtn.disabled = false;
         transformImageBtn.textContent = 'Transform Image';
-      }, 2000);
+      } catch (error) {
+        console.error('Transform error:', error);
+        alert('Failed to transform image. Please try again.');
+        transformImageBtn.disabled = false;
+        transformImageBtn.textContent = 'Transform Image';
+      }
     });
 
     function showGeneratedResult(imageUrl) {
@@ -1890,7 +1941,7 @@ Be helpful, accurate, and professional in all responses.`
       });
     }
 
-    // Send Message with Shared Memory
+    // Send Message with Shared Memory and File/Image Analysis
     async function sendMessage() {
       const message = messageInput.value.trim();
       if ((!message && !currentAttachedFile) || isStreaming) return;
@@ -1901,13 +1952,26 @@ Be helpful, accurate, and professional in all responses.`
 
       let userMessage = message || 'Please analyze this file';
       let imageData = null;
+      let fileContent = null;
 
+      // Handle file attachments
       if (currentAttachedFile) {
         if (currentAttachedFile.type.startsWith('image/')) {
+          // Handle image files
           imageData = await fileToBase64(currentAttachedFile);
-          userMessage += '\n\n[Image attached]';
+          userMessage = message || 'Please analyze this image in detail. Describe what you see, identify objects, text, colors, composition, and any other relevant details.';
+        } else if (currentAttachedFile.type === 'text/plain' || 
+                   currentAttachedFile.name.endsWith('.txt') ||
+                   currentAttachedFile.name.endsWith('.md')) {
+          // Handle text files
+          fileContent = await readTextFile(currentAttachedFile);
+          userMessage = `${message || 'Please analyze this text file'}\n\n--- File Content (${currentAttachedFile.name}) ---\n${fileContent}\n--- End of File ---`;
+        } else if (currentAttachedFile.type === 'application/pdf') {
+          // Handle PDF files
+          userMessage = `${message || 'I have attached a PDF file'}\n\n[PDF File: ${currentAttachedFile.name} - ${(currentAttachedFile.size / 1024).toFixed(1)} KB]\n\nNote: Please describe what you would expect to find in a PDF with this name, and I can help analyze or work with the content if you describe it to me.`;
         } else {
-          userMessage += `\n\n[File attached: ${currentAttachedFile.name}]`;
+          // Handle other file types
+          userMessage = `${message || 'I have attached a file'}\n\n[File: ${currentAttachedFile.name} - Type: ${currentAttachedFile.type} - Size: ${(currentAttachedFile.size / 1024).toFixed(1)} KB]\n\nNote: I've noted this file. Please describe its content or what you'd like me to help with.`;
         }
       }
 
@@ -1920,7 +1984,7 @@ Be helpful, accurate, and professional in all responses.`
 
       const chat = getCurrentChat();
       if (chat.messages.filter(m => m.role === 'user').length === 1) {
-        updateChatTitle(chat.id, message || 'Image analysis');
+        updateChatTitle(chat.id, message || 'File analysis');
       }
 
       addMessage('assistant', '');
@@ -1931,12 +1995,30 @@ Be helpful, accurate, and professional in all responses.`
         // Build messages with shared memory context
         const SYSTEM_MESSAGE = buildSystemMessage();
         
-        const messagesToSend = [
-          SYSTEM_MESSAGE,
-          ...chat.messages.slice(0, -1).map(m => ({
+        // Build the conversation history
+        const conversationMessages = chat.messages.slice(0, -1).map(m => {
+          // For image messages, use vision-compatible format
+          if (m.image && m.role === 'user') {
+            return {
+              role: m.role,
+              content: [
+                { type: 'text', text: m.content },
+                { 
+                  type: 'image_url',
+                  image_url: { url: m.image }
+                }
+              ]
+            };
+          }
+          return {
             role: m.role,
             content: m.content
-          }))
+          };
+        });
+
+        const messagesToSend = [
+          SYSTEM_MESSAGE,
+          ...conversationMessages
         ];
 
         const selectedModel = modelSelector.value;
@@ -1951,6 +2033,10 @@ Be helpful, accurate, and professional in all responses.`
             preferredProvider: selectedModel
           })
         });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -1970,7 +2056,10 @@ Be helpful, accurate, and professional in all responses.`
 
               try {
                 const parsed = JSON.parse(data);
-                if (parsed.content) {
+                if (parsed.error) {
+                  assistantMessage = `Error: ${parsed.error}\n\nTip: Some models may not support image analysis. Try switching to a different model (GPT-4o Mini or Groq models work well).`;
+                  updateLastMessage(assistantMessage);
+                } else if (parsed.content) {
                   assistantMessage += parsed.content;
                   updateLastMessage(assistantMessage);
                 }
@@ -1981,13 +2070,30 @@ Be helpful, accurate, and professional in all responses.`
           }
         }
 
+        // If no response was received, show helpful message
+        if (!assistantMessage || assistantMessage.trim() === '') {
+          assistantMessage = 'I received your message but got an empty response. Please try:\n\n1. Switching to a different AI model (try Groq models)\n2. Pressing Ctrl+Shift+R to hard refresh\n3. Simplifying your message\n\nNote: Image analysis works best with Groq and GPT-4o Mini models.';
+          updateLastMessage(assistantMessage);
+        }
+
       } catch (error) {
         console.error('Error:', error);
-        updateLastMessage('Error: Could not connect to backend. Try selecting a different model or press Ctrl+Shift+R to hard refresh.');
+        const errorMessage = `Error: Could not connect to backend.\n\n**Troubleshooting:**\n1. Press **Ctrl + Shift + R** to hard refresh\n2. Try switching to a different AI model\n3. Check your internet connection\n4. For image analysis, use Groq or GPT-4o Mini models\n\nError details: ${error.message}`;
+        updateLastMessage(errorMessage);
       } finally {
         isStreaming = false;
         sendBtn.disabled = false;
       }
+    }
+
+    // Helper function to read text files
+    async function readTextFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
     }
 
     // Input Handling
