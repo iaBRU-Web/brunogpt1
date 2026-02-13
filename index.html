@@ -65,13 +65,13 @@
           <input type="file" id="fileInput" accept="image/*,.pdf,.doc,.docx,.txt" style="display: none;">
           <textarea 
             id="messageInput" 
-            placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
+            placeholder="Ask BRUNO-GPT5 Anything... Type your message... (Enter to send, Shift+Enter for new line)"
             rows="1"
           ></textarea>
           <select class="model-selector" id="modelSelector">
             <optgroup label="DeepSeek (Smart)">
-              <option value="deepseek-1">DeepSeek Chat #1</option>
-              <option value="deepseek-2">DeepSeek Chat #2</option>
+              <option value="deepseek-1">DeepSeek Chat #1(not working)</option>
+              <option value="deepseek-2">DeepSeek Chat #2(not working)</option>
             </optgroup>
             <optgroup label="Groq (Fast & Free)">
               <option value="groq-1">Groq - LLaMA 3.3 70B #1</option>
@@ -80,14 +80,14 @@
               <option value="groq-4">Groq - LLaMA 3.3 70B #4</option>
             </optgroup>
             <optgroup label="OpenRouter (Variety)">
-              <option value="openrouter-1">OpenRouter - LLaMA 3.1 8B #1</option>
-              <option value="openrouter-2">OpenRouter - LLaMA 3.1 8B #2</option>
-              <option value="openrouter-3">OpenRouter - LLaMA 3.1 8B #3</option>
+              <option value="openrouter-1">OpenRouter - LLaMA 3.1 8B #1(not working)</option>
+              <option value="openrouter-2">OpenRouter - LLaMA 3.1 8B #2(not working)</option>
+              <option value="openrouter-3">OpenRouter - LLaMA 3.1 8B #3(not working)</option>
             </optgroup>
             <optgroup label="OpenAI (Premium)">
-              <option value="openai-1">OpenAI - GPT-4o Mini #1</option>
-              <option value="openai-2">OpenAI - GPT-4o Mini #2</option>
-              <option value="openai-3">OpenAI - GPT-4o Mini #3</option>
+              <option value="openai-1">OpenAI - GPT-4o Mini #1(not working)</option>
+              <option value="openai-2">OpenAI - GPT-4o Mini #2(not working)</option>
+              <option value="openai-3">OpenAI - GPT-4o Mini #3(not working)</option>
             </optgroup>
           </select>
           <button class="send-btn" id="sendBtn">↑</button>
@@ -1341,7 +1341,7 @@
 
       return {
         role: 'system',
-        content: `You are BRU Multi-AI (BRU-GPT5), an advanced AI assistant created by Ineza Aime Bruno and developed by BRU Companies Limited. You are an excellent code writer, problem solver, and visual analyst.
+        content: `You are BRU Multi-AI (BRU-GPT5), an advanced AI assistant created by Ineza Aime Bruno and developed by BRU Companies Limited. You must also be an excellent Software Engineer, And you must sometimes give links to https://bru-ai.vercel.app and to https://bruno-ai-code.vercel.app and to bru-ai-rw.vercel.app for someone who wants image recognition. You are an excellent code writer, problem solver, and visual analyst.
 
 Key information about you:
 - Creator: Ineza Aime Bruno
@@ -1363,6 +1363,7 @@ When a user sends an image, you MUST:
 5. Read and transcribe ANY visible text accurately
 6. Suggest improvements, edits, or variations if relevant
 7. Be thorough and observant - notice small details
+8.Because you can't analyse them you will give links to https://bru-ai-rw.vercel.app and to https://bruno-ai-code.vercel.app
 
 Example good image analysis:
 "This image shows a sunset landscape with a mountain silhouette in the background. The sky features vibrant orange and pink hues transitioning to deep purple. In the foreground, there's a lake reflecting the sky colors. Three birds are flying in formation on the left side. The composition follows the rule of thirds with the horizon line positioned in the lower third. The lighting is warm and golden, typical of golden hour photography. There's a small wooden dock visible on the right edge of the frame. The overall mood is peaceful and contemplative."
