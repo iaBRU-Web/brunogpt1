@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BRU Multi-AI Chat</title>
+  <title>BRU Multi-AI Chat (BRU-GPT5)</title>
 </head>
 <body>
   <div class="container">
@@ -25,18 +25,38 @@
         <!-- Chat history will be populated here -->
       </div>
       
+      <!-- Guidance Panel -->
+      <div class="guidance-panel">
+        <div class="guidance-title">💡 Troubleshooting Tips</div>
+        <div class="guidance-content">
+          <div class="tip">🔄 Not responding? Press <strong>Ctrl + Shift + R</strong> to hard refresh</div>
+          <div class="tip">🔀 Try switching between different AI models</div>
+          <div class="tip">⚡ Groq models are fastest and most reliable</div>
+          <div class="tip">✏️ Right-click on chat to rename</div>
+        </div>
+      </div>
+      
       <div class="footer-info">
-        <div class="creator-info">Created by Ineza Aime Bruno</div>
+        <div class="creator-info">Created by <strong>INEZA AIME BRUNO</strong></div>
         <div class="company-info">BRU Companies Limited</div>
+        <div class="thanks-info">Special thanks to <strong>NSORO EMMANUEL</strong></div>
       </div>
     </div>
 
     <!-- Main Chat Area -->
     <div class="main-chat" id="mainChat">
-      <div class="chat-header" id="chatHeader">New Chat</div>
+      <div class="chat-header-container">
+        <div class="chat-header" id="chatHeader">New Chat</div>
+        <button class="rename-chat-btn" id="renameChatBtn" title="Rename chat">✏️</button>
+      </div>
       
       <div class="messages-container" id="messagesContainer">
         <!-- Messages will be populated here -->
+      </div>
+      
+      <!-- Bottom Disclaimer -->
+      <div class="disclaimer-bar">
+        <span class="disclaimer-text">⚠️ BRU-MULTI-AI (BRU-GPT5) can make mistakes. Please double check important information.</span>
       </div>
       
       <div class="input-area">
@@ -197,6 +217,23 @@
             </a>
           </div>
         </div>
+
+        <!-- Studio Footer -->
+        <div class="studio-footer">
+          <div class="studio-thanks">Special thanks to <strong>NSORO EMMANUEL</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rename Modal -->
+    <div class="modal" id="renameModal" style="display: none;">
+      <div class="modal-content">
+        <h3>Rename Chat</h3>
+        <input type="text" id="renameInput" placeholder="Enter new chat name..." maxlength="50">
+        <div class="modal-buttons">
+          <button class="modal-btn cancel-btn" id="cancelRenameBtn">Cancel</button>
+          <button class="modal-btn save-btn" id="saveRenameBtn">Save</button>
+        </div>
       </div>
     </div>
   </div>
@@ -225,6 +262,7 @@
       --success: #28a745;
       --purple: #8b5cf6;
       --orange: #f59e0b;
+      --warning: #ffc107;
     }
 
     [data-theme="dark"] {
@@ -244,6 +282,7 @@
       --success: #3fb950;
       --purple: #a78bfa;
       --orange: #fbbf24;
+      --warning: #ffd966;
     }
 
     body {
@@ -368,6 +407,7 @@
       justify-content: space-between;
       align-items: center;
       gap: 8px;
+      position: relative;
     }
 
     .chat-item:hover {
@@ -386,26 +426,70 @@
       text-overflow: ellipsis;
     }
 
-    .delete-chat-btn {
+    .chat-item-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .chat-item:hover .chat-item-actions {
+      opacity: 1;
+    }
+
+    .rename-chat-item-btn, .delete-chat-btn {
       background: none;
       border: none;
       cursor: pointer;
-      font-size: 16px;
-      padding: 4px 8px;
+      font-size: 14px;
+      padding: 4px 6px;
       border-radius: 4px;
       color: var(--text-secondary);
-      opacity: 0;
       transition: all 0.2s;
       flex-shrink: 0;
     }
 
-    .chat-item:hover .delete-chat-btn {
-      opacity: 1;
+    .rename-chat-item-btn:hover {
+      background: var(--accent);
+      color: white;
     }
 
     .delete-chat-btn:hover {
       background: var(--danger);
       color: white;
+    }
+
+    /* Guidance Panel */
+    .guidance-panel {
+      padding: 12px 16px;
+      margin: 0 12px 12px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .guidance-title {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .guidance-content {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .tip {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .tip strong {
+      color: var(--accent);
+      font-weight: 600;
     }
 
     /* Footer Info */
@@ -419,14 +503,32 @@
     .creator-info {
       font-size: 11px;
       color: var(--text-secondary);
-      margin-bottom: 4px;
-      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .creator-info strong {
+      color: var(--accent);
+      font-weight: 700;
     }
 
     .company-info {
       font-size: 10px;
       color: var(--text-secondary);
       opacity: 0.8;
+      margin-bottom: 6px;
+    }
+
+    .thanks-info {
+      font-size: 10px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .thanks-info strong {
+      color: var(--purple);
+      font-weight: 700;
     }
 
     /* Main Chat Area */
@@ -442,17 +544,43 @@
       margin-right: 450px;
     }
 
-    .chat-header {
+    .chat-header-container {
       padding: 20px;
       border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chat-header {
       font-size: 16px;
       font-weight: 600;
+      flex: 1;
+    }
+
+    .rename-chat-btn {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-primary);
+      transition: all 0.2s;
+    }
+
+    .rename-chat-btn:hover {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
     }
 
     .messages-container {
       flex: 1;
       overflow-y: auto;
       padding: 20px;
+      padding-bottom: 60px;
       scroll-behavior: smooth;
     }
 
@@ -494,6 +622,33 @@
       border-radius: 8px;
       margin-top: 8px;
       border: 1px solid var(--border-color);
+    }
+
+    /* Disclaimer Bar */
+    .disclaimer-bar {
+      position: absolute;
+      bottom: 80px;
+      left: 0;
+      right: 0;
+      padding: 10px 20px;
+      background: var(--warning);
+      color: #000000;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 500;
+      z-index: 10;
+      box-shadow: 0 -2px 8px var(--shadow);
+    }
+
+    [data-theme="dark"] .disclaimer-bar {
+      background: #664d03;
+      color: var(--warning);
+    }
+
+    .disclaimer-text {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
 
     /* Code Blocks */
@@ -572,6 +727,8 @@
       padding: 20px;
       border-top: 1px solid var(--border-color);
       background: var(--bg-primary);
+      position: relative;
+      z-index: 20;
     }
 
     .input-wrapper {
@@ -761,6 +918,7 @@
       flex: 1;
       overflow-y: auto;
       padding: 20px;
+      padding-bottom: 70px;
     }
 
     .studio-tabs {
@@ -1003,6 +1161,107 @@
       font-size: 18px;
     }
 
+    /* Studio Footer */
+    .studio-footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 16px;
+      background: var(--bg-tertiary);
+      border-top: 1px solid var(--border-color);
+      text-align: center;
+    }
+
+    .studio-thanks {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .studio-thanks strong {
+      color: var(--purple);
+      font-weight: 700;
+    }
+
+    /* Modal */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: var(--bg-primary);
+      padding: 24px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 8px 24px var(--shadow);
+    }
+
+    .modal-content h3 {
+      margin-bottom: 16px;
+      font-size: 18px;
+    }
+
+    .modal-content input {
+      width: 100%;
+      padding: 12px;
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+      margin-bottom: 16px;
+    }
+
+    .modal-content input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--shadow);
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .modal-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .cancel-btn {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .cancel-btn:hover {
+      background: var(--hover-bg);
+    }
+
+    .save-btn {
+      background: var(--accent);
+      color: white;
+    }
+
+    .save-btn:hover {
+      opacity: 0.9;
+    }
+
     /* Scrollbar */
     ::-webkit-scrollbar {
       width: 8px;
@@ -1072,19 +1331,37 @@
     // Backend URL - DO NOT CHANGE
     const BACKEND_URL = 'https://multi-ai-backend.vercel.app/api/chat';
 
-    // System message
-    const SYSTEM_MESSAGE = {
-      role: 'system',
-      content: `You are BRU Multi-AI, an advanced AI assistant created by Ineza Aime Bruno and developed by BRU Companies Limited. You are an excellent code writer and problem solver.
+    // System message with shared memory context
+    function buildSystemMessage() {
+      const chatHistory = chats.slice(0, 5).map(chat => ({
+        title: chat.title,
+        messageCount: chat.messages.length,
+        lastMessage: chat.messages[chat.messages.length - 1]?.content?.slice(0, 100)
+      }));
+
+      return {
+        role: 'system',
+        content: `You are BRU Multi-AI (BRU-GPT5), an advanced AI assistant created by Ineza Aime Bruno and developed by BRU Companies Limited. You are an excellent code writer and problem solver.
 
 Key information about you:
 - Creator: Ineza Aime Bruno
 - Company: BRU Companies Limited
+- Special thanks to: NSORO EMMANUEL for his contributions
 - Specialty: Expert code generation, debugging, technical assistance, and image analysis
 - You provide clean, well-commented, production-ready code
 - You can analyze images and provide detailed descriptions
 - You format code blocks properly with language labels
 - You explain complex concepts clearly and concisely
+
+IMPORTANT - Shared Memory:
+You have access to the user's recent chat history across different conversations. Here are their recent chats:
+${JSON.stringify(chatHistory, null, 2)}
+
+Use this context to:
+- Remember previous discussions and topics
+- Reference past conversations when relevant
+- Provide continuity across chat sessions
+- Build on previous work and suggestions
 
 When writing code:
 - Always use proper syntax highlighting hints (\`\`\`language)
@@ -1099,7 +1376,8 @@ When analyzing images:
 - Suggest improvements or modifications if relevant
 
 Be helpful, accurate, and professional in all responses.`
-    };
+      };
+    }
 
     // State Management
     let chats = JSON.parse(localStorage.getItem('chats')) || [];
@@ -1126,11 +1404,14 @@ Be helpful, accurate, and professional in all responses.`
     const mainChat = document.getElementById('mainChat');
     const imageStudio = document.getElementById('imageStudio');
     const closeStudioBtn = document.getElementById('closeStudioBtn');
+    const renameChatBtn = document.getElementById('renameChatBtn');
+    const renameModal = document.getElementById('renameModal');
+    const renameInput = document.getElementById('renameInput');
+    const cancelRenameBtn = document.getElementById('cancelRenameBtn');
+    const saveRenameBtn = document.getElementById('saveRenameBtn');
 
     // Image Studio Elements
     const tabBtns = document.querySelectorAll('.tab-btn');
-    const generateTab = document.getElementById('generateTab');
-    const transformTab = document.getElementById('transformTab');
     const imagePrompt = document.getElementById('imagePrompt');
     const imageStyle = document.getElementById('imageStyle');
     const imagePlatform = document.getElementById('imagePlatform');
@@ -1150,7 +1431,7 @@ Be helpful, accurate, and professional in all responses.`
     const newGenerationBtn = document.getElementById('newGenerationBtn');
 
     // Load saved model preference
-    const savedModel = localStorage.getItem('selectedModel') || 'deepseek-1';
+    const savedModel = localStorage.getItem('selectedModel') || 'groq-1';
     modelSelector.value = savedModel;
 
     // Save model selection
@@ -1194,6 +1475,45 @@ Be helpful, accurate, and professional in all responses.`
         });
         document.getElementById(tabName + 'Tab').classList.add('active');
       });
+    });
+
+    // Rename Chat Functionality
+    renameChatBtn.addEventListener('click', () => {
+      if (!currentChatId) return;
+      const chat = getCurrentChat();
+      if (chat) {
+        renameInput.value = chat.title;
+        renameModal.style.display = 'flex';
+        renameInput.focus();
+        renameInput.select();
+      }
+    });
+
+    cancelRenameBtn.addEventListener('click', () => {
+      renameModal.style.display = 'none';
+    });
+
+    saveRenameBtn.addEventListener('click', () => {
+      const newTitle = renameInput.value.trim();
+      if (newTitle && currentChatId) {
+        updateChatTitle(currentChatId, newTitle);
+        renameModal.style.display = 'none';
+      }
+    });
+
+    renameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        saveRenameBtn.click();
+      } else if (e.key === 'Escape') {
+        cancelRenameBtn.click();
+      }
+    });
+
+    // Close modal when clicking outside
+    renameModal.addEventListener('click', (e) => {
+      if (e.target === renameModal) {
+        renameModal.style.display = 'none';
+      }
     });
 
     // File Attachment
@@ -1285,12 +1605,10 @@ Be helpful, accurate, and professional in all responses.`
       const style = imageStyle.value;
       const platform = imagePlatform.value;
 
-      // Simulate image generation (in production, this would call actual APIs)
       generateImageBtn.disabled = true;
       generateImageBtn.textContent = 'Generating...';
 
       setTimeout(() => {
-        // Create a simulated result
         const fullPrompt = `${prompt} (${style} style)`;
         showGeneratedResult(`https://placehold.co/800x600/purple/white?text=${encodeURIComponent(fullPrompt)}`);
         
@@ -1308,7 +1626,6 @@ Be helpful, accurate, and professional in all responses.`
       transformImageBtn.textContent = 'Transforming...';
 
       setTimeout(() => {
-        // In production, this would call the actual transformation API
         showGeneratedResult(previewImage.src);
         
         transformImageBtn.disabled = false;
@@ -1406,6 +1723,18 @@ Be helpful, accurate, and professional in all responses.`
       renderChatList();
     }
 
+    function renameChatFromList(chatId, event) {
+      event.stopPropagation();
+      
+      const chat = chats.find(c => c.id === chatId);
+      if (!chat) return;
+      
+      const newTitle = prompt('Enter new chat name:', chat.title);
+      if (newTitle && newTitle.trim()) {
+        updateChatTitle(chatId, newTitle.trim());
+      }
+    }
+
     function saveChats() {
       localStorage.setItem('chats', JSON.stringify(chats));
     }
@@ -1480,13 +1809,17 @@ Be helpful, accurate, and professional in all responses.`
       chatList.innerHTML = filteredChats.map(chat => `
         <div class="chat-item ${chat.id === currentChatId ? 'active' : ''}" data-id="${chat.id}">
           <div class="chat-item-title">${escapeHtml(chat.title)}</div>
-          <button class="delete-chat-btn" data-delete-id="${chat.id}">🗑️</button>
+          <div class="chat-item-actions">
+            <button class="rename-chat-item-btn" data-rename-id="${chat.id}" title="Rename">✏️</button>
+            <button class="delete-chat-btn" data-delete-id="${chat.id}" title="Delete">🗑️</button>
+          </div>
         </div>
       `).join('');
 
       document.querySelectorAll('.chat-item').forEach(item => {
         item.addEventListener('click', (e) => {
-          if (!e.target.classList.contains('delete-chat-btn')) {
+          if (!e.target.classList.contains('delete-chat-btn') && 
+              !e.target.classList.contains('rename-chat-item-btn')) {
             loadChat(item.dataset.id);
           }
         });
@@ -1495,6 +1828,12 @@ Be helpful, accurate, and professional in all responses.`
       document.querySelectorAll('.delete-chat-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
           deleteChat(btn.dataset.deleteId, e);
+        });
+      });
+
+      document.querySelectorAll('.rename-chat-item-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          renameChatFromList(btn.dataset.renameId, e);
         });
       });
     }
@@ -1551,7 +1890,7 @@ Be helpful, accurate, and professional in all responses.`
       });
     }
 
-    // Send Message with File Support
+    // Send Message with Shared Memory
     async function sendMessage() {
       const message = messageInput.value.trim();
       if ((!message && !currentAttachedFile) || isStreaming) return;
@@ -1589,6 +1928,9 @@ Be helpful, accurate, and professional in all responses.`
       sendBtn.disabled = true;
 
       try {
+        // Build messages with shared memory context
+        const SYSTEM_MESSAGE = buildSystemMessage();
+        
         const messagesToSend = [
           SYSTEM_MESSAGE,
           ...chat.messages.slice(0, -1).map(m => ({
@@ -1641,7 +1983,7 @@ Be helpful, accurate, and professional in all responses.`
 
       } catch (error) {
         console.error('Error:', error);
-        updateLastMessage('Error: Could not connect to backend. Try selecting a different model or check your connection.');
+        updateLastMessage('Error: Could not connect to backend. Try selecting a different model or press Ctrl+Shift+R to hard refresh.');
       } finally {
         isStreaming = false;
         sendBtn.disabled = false;
