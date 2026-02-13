@@ -63,6 +63,7 @@
       --hover-bg: #f0f0f0;
       --input-bg: #ffffff;
       --shadow: rgba(0, 0, 0, 0.1);
+      --danger: #dc3545;
     }
 
     [data-theme="dark"] {
@@ -75,6 +76,7 @@
       --hover-bg: #333333;
       --input-bg: #2d2d2d;
       --shadow: rgba(255, 255, 255, 0.1);
+      --danger: #ff4d4d;
     }
 
     body {
@@ -182,9 +184,10 @@
       transition: all 0.2s;
       font-size: 14px;
       color: var(--text-primary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
     }
 
     .chat-item:hover {
@@ -194,6 +197,35 @@
     .chat-item.active {
       background: var(--bg-tertiary);
       font-weight: 500;
+    }
+
+    .chat-item-title {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .delete-chat-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      color: var(--text-secondary);
+      opacity: 0;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .chat-item:hover .delete-chat-btn {
+      opacity: 1;
+    }
+
+    .delete-chat-btn:hover {
+      background: var(--danger);
+      color: white;
     }
 
     /* Main Chat Area */
@@ -357,7 +389,7 @@
     }
   </style>
   <script type="module">
-    // ⚠️ REPLACE THIS WITH YOUR BACKEND URL AFTER DEPLOYING BACKEND
+    // Backend URL
     const BACKEND_URL = 'https://multi-ai-backend.vercel.app/api/chat';
 
     // State Management
@@ -412,6 +444,31 @@
       }
     }
 
+    function deleteChat(chatId, event) {
+      event.stopPropagation(); // Prevent loading the chat when clicking delete
+      
+      const chat = chats.find(c => c.id === chatId);
+      if (!chat) return;
+      
+      // Confirm deletion
+      if (!confirm(`Delete "${chat.title}"?`)) return;
+      
+      // Remove chat from array
+      chats = chats.filter(c => c.id !== chatId);
+      saveChats();
+      
+      // If deleted chat was current, load another or create new
+      if (currentChatId === chatId) {
+        if (chats.length > 0) {
+          loadChat(chats[0].id);
+        } else {
+          createNewChat();
+        }
+      }
+      
+      renderChatList();
+    }
+
     function saveChats() {
       localStorage.setItem('chats', JSON.stringify(chats));
     }
@@ -440,14 +497,25 @@
 
       chatList.innerHTML = filteredChats.map(chat => `
         <div class="chat-item ${chat.id === currentChatId ? 'active' : ''}" data-id="${chat.id}">
-          ${chat.title}
+          <div class="chat-item-title">${chat.title}</div>
+          <button class="delete-chat-btn" data-delete-id="${chat.id}">🗑️</button>
         </div>
       `).join('');
 
-      // Add click listeners
+      // Add click listeners for chat items
       document.querySelectorAll('.chat-item').forEach(item => {
-        item.addEventListener('click', () => {
-          loadChat(item.dataset.id);
+        item.addEventListener('click', (e) => {
+          // Only load chat if not clicking delete button
+          if (!e.target.classList.contains('delete-chat-btn')) {
+            loadChat(item.dataset.id);
+          }
+        });
+      });
+
+      // Add click listeners for delete buttons
+      document.querySelectorAll('.delete-chat-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          deleteChat(btn.dataset.deleteId, e);
         });
       });
     }
@@ -490,7 +558,7 @@
       return div.innerHTML.replace(/\n/g, '<br>');
     }
 
-    // Send Message
+    // Send Message with Full Conversation Memory
     async function sendMessage() {
       const message = messageInput.value.trim();
       if (!message || isStreaming) return;
@@ -516,13 +584,14 @@
       sendBtn.disabled = true;
 
       try {
+        // Send ALL previous messages for full conversation memory
         const response = await fetch(BACKEND_URL, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            messages: chat.messages.slice(0, -1)
+            messages: chat.messages.slice(0, -1) // All messages except the empty assistant one we just added
           })
         });
 
@@ -557,7 +626,7 @@
 
       } catch (error) {
         console.error('Error:', error);
-        updateLastMessage('Error: SORRY BRUGPT5 IS UNDER HIGH USAGE RIGHT NOW WE WILL TRY TO FIX THE PROBLEM SO STAY TUNED.');
+        updateLastMessage('Error: Could not connect to backend. Make sure backend is deployed.');
       } finally {
         isStreaming = false;
         sendBtn.disabled = false;
