@@ -27,12 +27,12 @@
       
       <!-- Guidance Panel -->
       <div class="guidance-panel">
-        <div class="guidance-title">💡 Troubleshooting Tips</div>
+        <div class="guidance-title">💡 Important Information</div>
         <div class="guidance-content">
-          <div class="tip">🔄 Not responding? Press <strong>Ctrl + Shift + R</strong> to hard refresh</div>
-          <div class="tip">🔀 Try switching between different AI models</div>
-          <div class="tip">⚡ Groq models are fastest and most reliable</div>
-          <div class="tip">✏️ Right-click on chat to rename</div>
+          <div class="tip">✅ <strong>Only Groq models are working</strong> - Use LLaMA 3.3 70B</div>
+          <div class="tip">🔄 Not responding? Press <strong>Ctrl + Shift + R</strong></div>
+          <div class="tip">⚡ Groq is fastest and most reliable</div>
+          <div class="tip">✏️ Right-click any chat to rename it</div>
         </div>
       </div>
       
@@ -1445,9 +1445,20 @@ Be helpful, accurate, thorough, and professional in all responses.`
     const insertChatBtn = document.getElementById('insertChatBtn');
     const newGenerationBtn = document.getElementById('newGenerationBtn');
 
-    // Load saved model preference
+    // Load saved model preference - default to Groq since only Groq works
     const savedModel = localStorage.getItem('selectedModel') || 'groq-1';
     modelSelector.value = savedModel;
+
+    // If saved model is not Groq, show a one-time notification
+    if (!savedModel.startsWith('groq')) {
+      setTimeout(() => {
+        const shouldSwitch = confirm('⚠️ Important: Only Groq models are currently working.\n\nWould you like to switch to Groq - LLaMA 3.3 70B #1 now?\n\n(Other models like DeepSeek, OpenRouter, and OpenAI require valid API keys)');
+        if (shouldSwitch) {
+          modelSelector.value = 'groq-1';
+          localStorage.setItem('selectedModel', 'groq-1');
+        }
+      }, 1000);
+    }
 
     // Save model selection
     modelSelector.addEventListener('change', () => {
@@ -1959,19 +1970,22 @@ Be helpful, accurate, thorough, and professional in all responses.`
         if (currentAttachedFile.type.startsWith('image/')) {
           // Handle image files
           imageData = await fileToBase64(currentAttachedFile);
-          userMessage = message || 'Please analyze this image in detail. Describe what you see, identify objects, text, colors, composition, and any other relevant details.';
+          // For now, inform user that image is attached but can't be analyzed by most models
+          userMessage = `${message || ''}\n\n[📷 Image attached: ${currentAttachedFile.name}]\n\nNote: I can see you've attached an image. However, most AI models (DeepSeek, OpenRouter, OpenAI) don't support image analysis through this interface yet. Only Groq models might support it in the future. For now, please describe what's in the image, and I can help based on your description.`.trim();
         } else if (currentAttachedFile.type === 'text/plain' || 
                    currentAttachedFile.name.endsWith('.txt') ||
                    currentAttachedFile.name.endsWith('.md')) {
           // Handle text files
           fileContent = await readTextFile(currentAttachedFile);
-          userMessage = `${message || 'Please analyze this text file'}\n\n--- File Content (${currentAttachedFile.name}) ---\n${fileContent}\n--- End of File ---`;
+          userMessage = `${message || 'Please analyze this text file'}\n\n--- FILE CONTENT START (${currentAttachedFile.name}) ---\n${fileContent}\n--- FILE CONTENT END ---\n\nPlease analyze the above file content.`;
         } else if (currentAttachedFile.type === 'application/pdf') {
           // Handle PDF files
-          userMessage = `${message || 'I have attached a PDF file'}\n\n[PDF File: ${currentAttachedFile.name} - ${(currentAttachedFile.size / 1024).toFixed(1)} KB]\n\nNote: Please describe what you would expect to find in a PDF with this name, and I can help analyze or work with the content if you describe it to me.`;
+          userMessage = `${message || 'I have attached a PDF file'}\n\n[📄 PDF File: ${currentAttachedFile.name} - ${(currentAttachedFile.size / 1024).toFixed(1)} KB]\n\nNote: PDF analysis isn't supported directly. Please copy and paste the text content from the PDF, or describe what's in it, and I can help you analyze it.`;
+        } else if (currentAttachedFile.name.endsWith('.doc') || currentAttachedFile.name.endsWith('.docx')) {
+          userMessage = `${message || 'I have attached a Word document'}\n\n[📄 Word Document: ${currentAttachedFile.name} - ${(currentAttachedFile.size / 1024).toFixed(1)} KB]\n\nNote: Word document analysis isn't supported directly. Please copy and paste the text content, and I can help you work with it.`;
         } else {
           // Handle other file types
-          userMessage = `${message || 'I have attached a file'}\n\n[File: ${currentAttachedFile.name} - Type: ${currentAttachedFile.type} - Size: ${(currentAttachedFile.size / 1024).toFixed(1)} KB]\n\nNote: I've noted this file. Please describe its content or what you'd like me to help with.`;
+          userMessage = `${message || 'I have attached a file'}\n\n[📎 File: ${currentAttachedFile.name}\nType: ${currentAttachedFile.type}\nSize: ${(currentAttachedFile.size / 1024).toFixed(1)} KB]\n\nNote: This file type can't be analyzed directly. Please describe its contents or copy relevant parts, and I'll be happy to help!`;
         }
       }
 
@@ -1995,26 +2009,11 @@ Be helpful, accurate, thorough, and professional in all responses.`
         // Build messages with shared memory context
         const SYSTEM_MESSAGE = buildSystemMessage();
         
-        // Build the conversation history
-        const conversationMessages = chat.messages.slice(0, -1).map(m => {
-          // For image messages, use vision-compatible format
-          if (m.image && m.role === 'user') {
-            return {
-              role: m.role,
-              content: [
-                { type: 'text', text: m.content },
-                { 
-                  type: 'image_url',
-                  image_url: { url: m.image }
-                }
-              ]
-            };
-          }
-          return {
-            role: m.role,
-            content: m.content
-          };
-        });
+        // Build the conversation history - simple text format for all models
+        const conversationMessages = chat.messages.slice(0, -1).map(m => ({
+          role: m.role,
+          content: m.content
+        }));
 
         const messagesToSend = [
           SYSTEM_MESSAGE,
@@ -2035,7 +2034,8 @@ Be helpful, accurate, thorough, and professional in all responses.`
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
         const reader = response.body.getReader();
@@ -2057,7 +2057,7 @@ Be helpful, accurate, thorough, and professional in all responses.`
               try {
                 const parsed = JSON.parse(data);
                 if (parsed.error) {
-                  assistantMessage = `Error: ${parsed.error}\n\nTip: Some models may not support image analysis. Try switching to a different model (GPT-4o Mini or Groq models work well).`;
+                  assistantMessage = `❌ Error: ${parsed.error}\n\n**💡 Troubleshooting:**\n1. **Groq models** are the most reliable (LLaMA 3.3 70B)\n2. Press **Ctrl+Shift+R** for hard refresh\n3. Try a different model from the dropdown\n4. Check if the API key is valid\n\n**ℹ️ Current Model:** ${selectedModel}`;
                   updateLastMessage(assistantMessage);
                 } else if (parsed.content) {
                   assistantMessage += parsed.content;
@@ -2072,13 +2072,13 @@ Be helpful, accurate, thorough, and professional in all responses.`
 
         // If no response was received, show helpful message
         if (!assistantMessage || assistantMessage.trim() === '') {
-          assistantMessage = 'I received your message but got an empty response. Please try:\n\n1. Switching to a different AI model (try Groq models)\n2. Pressing Ctrl+Shift+R to hard refresh\n3. Simplifying your message\n\nNote: Image analysis works best with Groq and GPT-4o Mini models.';
+          assistantMessage = `⚠️ No response received from the AI model.\n\n**💡 Try these solutions:**\n\n1. ✅ **Switch to Groq** - Most reliable models:\n   - Groq - LLaMA 3.3 70B #1\n   - Groq - LLaMA 3.3 70B #2\n   - Groq - LLaMA 3.3 70B #3\n   - Groq - LLaMA 3.3 70B #4\n\n2. 🔄 **Hard Refresh** - Press **Ctrl + Shift + R**\n\n3. 🔀 **Try Different Model** - Some models may be temporarily unavailable\n\n4. 📝 **Simplify Message** - Try a shorter, simpler message\n\n**Current Model:** ${selectedModel}\n**Status:** Only Groq models are confirmed working`;
           updateLastMessage(assistantMessage);
         }
 
       } catch (error) {
         console.error('Error:', error);
-        const errorMessage = `Error: Could not connect to backend.\n\n**Troubleshooting:**\n1. Press **Ctrl + Shift + R** to hard refresh\n2. Try switching to a different AI model\n3. Check your internet connection\n4. For image analysis, use Groq or GPT-4o Mini models\n\nError details: ${error.message}`;
+        const errorMessage = `❌ **Connection Error**\n\n${error.message}\n\n**💡 Quick Fixes:**\n\n1. ✅ **Switch to Groq Models** (confirmed working):\n   - Groq - LLaMA 3.3 70B #1 ⭐ (Recommended)\n   - Groq - LLaMA 3.3 70B #2\n   - Groq - LLaMA 3.3 70B #3\n   - Groq - LLaMA 3.3 70B #4\n\n2. 🔄 **Hard Refresh**: Press **Ctrl + Shift + R**\n\n3. 📡 **Check Connection**: Verify your internet is working\n\n4. 🔑 **API Keys**: Other models (DeepSeek, OpenRouter, OpenAI) may need valid API keys\n\n**Note:** Currently, only Groq models are reliably working. Other providers may require additional setup or have invalid API keys.`;
         updateLastMessage(errorMessage);
       } finally {
         isStreaming = false;
