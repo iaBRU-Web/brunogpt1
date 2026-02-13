@@ -3,15 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BRU-Multi-AI Chat</title>
-
+  <title>BRU Multi-AI Chat</title>
 </head>
 <body>
   <div class="container">
     <!-- Sidebar -->
     <div class="sidebar">
       <div class="sidebar-header">
-        <div class="sidebar-title">Multi-AI Chat</div>
+        <div class="sidebar-title">BRU Multi-AI</div>
         <button class="theme-toggle" id="themeToggle">🌙</button>
       </div>
       
@@ -23,6 +22,11 @@
       
       <div class="chat-list" id="chatList">
         <!-- Chat history will be populated here -->
+      </div>
+      
+      <div class="footer-info">
+        <div class="creator-info">Created by Ineza Aime Bruno</div>
+        <div class="company-info">BRU Companies Limited</div>
       </div>
     </div>
 
@@ -64,6 +68,10 @@
       --input-bg: #ffffff;
       --shadow: rgba(0, 0, 0, 0.1);
       --danger: #dc3545;
+      --accent: #0066cc;
+      --code-bg: #f6f8fa;
+      --code-border: #d0d7de;
+      --success: #28a745;
     }
 
     [data-theme="dark"] {
@@ -77,6 +85,10 @@
       --input-bg: #2d2d2d;
       --shadow: rgba(255, 255, 255, 0.1);
       --danger: #ff4d4d;
+      --accent: #4d94ff;
+      --code-bg: #0d1117;
+      --code-border: #30363d;
+      --success: #3fb950;
     }
 
     body {
@@ -228,6 +240,27 @@
       color: white;
     }
 
+    /* Footer Info */
+    .footer-info {
+      padding: 16px;
+      border-top: 1px solid var(--border-color);
+      text-align: center;
+      background: var(--bg-secondary);
+    }
+
+    .creator-info {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    .company-info {
+      font-size: 10px;
+      color: var(--text-secondary);
+      opacity: 0.8;
+    }
+
     /* Main Chat Area */
     .main-chat {
       flex: 1;
@@ -271,6 +304,7 @@
       border-radius: 12px;
       line-height: 1.6;
       font-size: 15px;
+      word-wrap: break-word;
     }
 
     .message.user .message-content {
@@ -280,6 +314,78 @@
 
     .message.assistant .message-content {
       background: var(--bg-tertiary);
+    }
+
+    /* Code Blocks */
+    .code-block-wrapper {
+      margin: 12px 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--code-border);
+    }
+
+    .code-block-header {
+      background: var(--code-bg);
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--code-border);
+    }
+
+    .code-language {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .copy-code-btn {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--text-primary);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .copy-code-btn:hover {
+      background: var(--hover-bg);
+    }
+
+    .copy-code-btn.copied {
+      background: var(--success);
+      color: white;
+      border-color: var(--success);
+    }
+
+    .code-block {
+      background: var(--code-bg);
+      padding: 16px;
+      overflow-x: auto;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .code-block code {
+      color: var(--text-primary);
+      white-space: pre;
+    }
+
+    /* Inline code */
+    .inline-code {
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      border: 1px solid var(--code-border);
     }
 
     /* Input Area */
@@ -392,6 +498,29 @@
     // Backend URL
     const BACKEND_URL = 'https://multi-ai-backend.vercel.app/api/chat';
 
+    // System message that tells AI about the creator
+    const SYSTEM_MESSAGE = {
+      role: 'system',
+      content: `You are BRU Multi-AI, an advanced AI assistant created by Ineza Aime Bruno and developed by BRU Companies Limited. You are an excellent code writer and problem solver.
+
+Key information about you:
+- Creator: Ineza Aime Bruno
+- Company: BRU Companies Limited
+- Specialty: Expert code generation, debugging, and technical assistance
+- You provide clean, well-commented, production-ready code
+- You format code blocks properly with language labels
+- You explain complex concepts clearly and concisely
+
+When writing code:
+- Always use proper syntax highlighting hints (```language)
+- Write clean, readable, well-commented code
+- Follow best practices and modern standards
+- Explain what the code does
+- Provide examples when helpful
+
+Be helpful, accurate, and professional in all responses.`
+    };
+
     // State Management
     let chats = JSON.parse(localStorage.getItem('chats')) || [];
     let currentChatId = null;
@@ -445,19 +574,16 @@
     }
 
     function deleteChat(chatId, event) {
-      event.stopPropagation(); // Prevent loading the chat when clicking delete
+      event.stopPropagation();
       
       const chat = chats.find(c => c.id === chatId);
       if (!chat) return;
       
-      // Confirm deletion
       if (!confirm(`Delete "${chat.title}"?`)) return;
       
-      // Remove chat from array
       chats = chats.filter(c => c.id !== chatId);
       saveChats();
       
-      // If deleted chat was current, load another or create new
       if (currentChatId === chatId) {
         if (chats.length > 0) {
           loadChat(chats[0].id);
@@ -489,6 +615,57 @@
       }
     }
 
+    // Code formatting functions
+    function formatContent(text) {
+      // Format code blocks with copy button
+      text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
+        const lang = language || 'code';
+        const escapedCode = escapeHtml(code.trim());
+        return `<div class="code-block-wrapper">
+          <div class="code-block-header">
+            <span class="code-language">${lang}</span>
+            <button class="copy-code-btn" onclick="copyCode(this, \`${escapedCode.replace(/`/g, '\\`')}\`)">
+              📋 Copy
+            </button>
+          </div>
+          <div class="code-block"><code>${escapedCode}</code></div>
+        </div>`;
+      });
+
+      // Format inline code
+      text = text.replace(/`([^`]+)`/g, '<span class="inline-code">$1</span>');
+
+      // Format line breaks
+      text = text.replace(/\n/g, '<br>');
+
+      return text;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Copy code function (global scope for onclick)
+    window.copyCode = function(button, code) {
+      // Decode HTML entities
+      const textarea = document.createElement('textarea');
+      textarea.innerHTML = code;
+      const decodedCode = textarea.value;
+
+      navigator.clipboard.writeText(decodedCode).then(() => {
+        const originalText = button.innerHTML;
+        button.innerHTML = '✓ Copied!';
+        button.classList.add('copied');
+        
+        setTimeout(() => {
+          button.innerHTML = originalText;
+          button.classList.remove('copied');
+        }, 2000);
+      });
+    };
+
     // Render Functions
     function renderChatList(filter = '') {
       const filteredChats = chats.filter(chat => 
@@ -497,22 +674,19 @@
 
       chatList.innerHTML = filteredChats.map(chat => `
         <div class="chat-item ${chat.id === currentChatId ? 'active' : ''}" data-id="${chat.id}">
-          <div class="chat-item-title">${chat.title}</div>
+          <div class="chat-item-title">${escapeHtml(chat.title)}</div>
           <button class="delete-chat-btn" data-delete-id="${chat.id}">🗑️</button>
         </div>
       `).join('');
 
-      // Add click listeners for chat items
       document.querySelectorAll('.chat-item').forEach(item => {
         item.addEventListener('click', (e) => {
-          // Only load chat if not clicking delete button
           if (!e.target.classList.contains('delete-chat-btn')) {
             loadChat(item.dataset.id);
           }
         });
       });
 
-      // Add click listeners for delete buttons
       document.querySelectorAll('.delete-chat-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
           deleteChat(btn.dataset.deleteId, e);
@@ -521,12 +695,14 @@
     }
 
     function renderMessages(messages) {
-      messagesContainer.innerHTML = messages.map(msg => `
-        <div class="message ${msg.role}">
-          <div class="message-header">${msg.role === 'user' ? 'You' : 'AI'}</div>
-          <div class="message-content">${escapeHtml(msg.content)}</div>
-        </div>
-      `).join('');
+      messagesContainer.innerHTML = messages
+        .filter(msg => msg.role !== 'system') // Don't show system messages
+        .map(msg => `
+          <div class="message ${msg.role}">
+            <div class="message-header">${msg.role === 'user' ? 'You' : 'BRU AI'}</div>
+            <div class="message-content">${formatContent(msg.content)}</div>
+          </div>
+        `).join('');
       scrollToBottom();
     }
 
@@ -552,13 +728,7 @@
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML.replace(/\n/g, '<br>');
-    }
-
-    // Send Message with Full Conversation Memory
+    // Send Message with System Role
     async function sendMessage() {
       const message = messageInput.value.trim();
       if (!message || isStreaming) return;
@@ -567,31 +737,33 @@
         createNewChat();
       }
 
-      // Add user message
       addMessage('user', message);
       messageInput.value = '';
       autoResize();
 
-      // Update title if first message
       const chat = getCurrentChat();
       if (chat.messages.length === 1) {
         updateChatTitle(chat.id, message);
       }
 
-      // Add empty assistant message
       addMessage('assistant', '');
       isStreaming = true;
       sendBtn.disabled = true;
 
       try {
-        // Send ALL previous messages for full conversation memory
+        // Prepare messages: system message + conversation history
+        const messagesToSend = [
+          SYSTEM_MESSAGE,
+          ...chat.messages.slice(0, -1) // All messages except the empty assistant one
+        ];
+
         const response = await fetch(BACKEND_URL, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            messages: chat.messages.slice(0, -1) // All messages except the empty assistant one we just added
+            messages: messagesToSend
           })
         });
 
@@ -626,7 +798,7 @@
 
       } catch (error) {
         console.error('Error:', error);
-        updateLastMessage('Error: Could not connect to backend. Make sure backend is deployed.');
+        updateLastMessage('Error: Could not connect to backend. Please check your connection and try again.');
       } finally {
         isStreaming = false;
         sendBtn.disabled = false;
