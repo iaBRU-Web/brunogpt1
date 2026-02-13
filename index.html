@@ -10,7 +10,7 @@
     <!-- Sidebar -->
     <div class="sidebar">
       <div class="sidebar-header">
-        <div class="sidebar-title">BRU Multi-AI IF YOU DON'T RECEIVE THE ANSWER PLEASE CLICK CTRL + SHIFT + R</div>
+        <div class="sidebar-title">BRU Multi-AI IF YOU DONT RECEIVE YOR ANSWER  PLS TRY MAKING A STRONG-MEGA REFRESH (Ctrl + Shift + R )</div>
         <button class="theme-toggle" id="themeToggle">🌙</button>
       </div>
       
@@ -45,6 +45,28 @@
             placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
             rows="1"
           ></textarea>
+          <select class="model-selector" id="modelSelector">
+            <optgroup label="DeepSeek (Smart)">
+              <option value="deepseek-1">DeepSeek Chat #1</option>
+              <option value="deepseek-2">DeepSeek Chat #2</option>
+            </optgroup>
+            <optgroup label="Groq (Fast & Free)">
+              <option value="groq-1">Groq - LLaMA 3.3 70B #1</option>
+              <option value="groq-2">Groq - LLaMA 3.3 70B #2</option>
+              <option value="groq-3">Groq - LLaMA 3.3 70B #3</option>
+              <option value="groq-4">Groq - LLaMA 3.3 70B #4</option>
+            </optgroup>
+            <optgroup label="OpenRouter (Variety)">
+              <option value="openrouter-1">OpenRouter - LLaMA 3.1 8B #1</option>
+              <option value="openrouter-2">OpenRouter - LLaMA 3.1 8B #2</option>
+              <option value="openrouter-3">OpenRouter - LLaMA 3.1 8B #3</option>
+            </optgroup>
+            <optgroup label="OpenAI (Premium)">
+              <option value="openai-1">OpenAI - GPT-4o Mini #1</option>
+              <option value="openai-2">OpenAI - GPT-4o Mini #2</option>
+              <option value="openai-3">OpenAI - GPT-4o Mini #3</option>
+            </optgroup>
+          </select>
           <button class="send-btn" id="sendBtn">↑</button>
         </div>
       </div>
@@ -403,6 +425,10 @@
       border: 2px solid var(--border-color);
       border-radius: 16px;
       transition: all 0.2s;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      padding-right: 8px;
     }
 
     .input-wrapper:focus-within {
@@ -411,8 +437,8 @@
     }
 
     .input-wrapper textarea {
-      width: 100%;
-      padding: 16px 60px 16px 16px;
+      flex: 1;
+      padding: 16px;
       background: transparent;
       border: none;
       outline: none;
@@ -424,10 +450,29 @@
       min-height: 24px;
     }
 
+    .model-selector {
+      padding: 8px 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 13px;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s;
+      max-width: 200px;
+      margin-bottom: 8px;
+    }
+
+    .model-selector:hover {
+      background: var(--hover-bg);
+    }
+
+    .model-selector:focus {
+      border-color: var(--accent);
+    }
+
     .send-btn {
-      position: absolute;
-      right: 12px;
-      bottom: 12px;
       width: 36px;
       height: 36px;
       background: var(--text-primary);
@@ -440,6 +485,8 @@
       justify-content: center;
       font-size: 18px;
       transition: all 0.2s;
+      flex-shrink: 0;
+      margin-bottom: 8px;
     }
 
     .send-btn:hover:not(:disabled) {
@@ -498,7 +545,7 @@
     // Backend URL
     const BACKEND_URL = 'https://multi-ai-backend.vercel.app/api/chat';
 
-    // System message that tells AI about the creator
+    // System message
     const SYSTEM_MESSAGE = {
       role: 'system',
       content: `You are BRU Multi-AI, an advanced AI assistant created by Ineza Aime Bruno and developed by BRU Companies Limited. You are an excellent code writer and problem solver.
@@ -512,7 +559,7 @@ Key information about you:
 - You explain complex concepts clearly and concisely
 
 When writing code:
-- Always use proper syntax highlighting hints (```language)
+- Always use proper syntax highlighting hints (\`\`\`language)
 - Write clean, readable, well-commented code
 - Follow best practices and modern standards
 - Explain what the code does
@@ -535,6 +582,16 @@ Be helpful, accurate, and professional in all responses.`
     const messagesContainer = document.getElementById('messagesContainer');
     const messageInput = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
+    const modelSelector = document.getElementById('modelSelector');
+
+    // Load saved model preference
+    const savedModel = localStorage.getItem('selectedModel') || 'deepseek-1';
+    modelSelector.value = savedModel;
+
+    // Save model selection
+    modelSelector.addEventListener('change', () => {
+      localStorage.setItem('selectedModel', modelSelector.value);
+    });
 
     // Theme Toggle
     const savedTheme = localStorage.getItem('theme') || 'light';
@@ -647,9 +704,8 @@ Be helpful, accurate, and professional in all responses.`
       return div.innerHTML;
     }
 
-    // Copy code function (global scope for onclick)
+    // Copy code function
     window.copyCode = function(button, code) {
-      // Decode HTML entities
       const textarea = document.createElement('textarea');
       textarea.innerHTML = code;
       const decodedCode = textarea.value;
@@ -696,7 +752,7 @@ Be helpful, accurate, and professional in all responses.`
 
     function renderMessages(messages) {
       messagesContainer.innerHTML = messages
-        .filter(msg => msg.role !== 'system') // Don't show system messages
+        .filter(msg => msg.role !== 'system')
         .map(msg => `
           <div class="message ${msg.role}">
             <div class="message-header">${msg.role === 'user' ? 'You' : 'BRU AI'}</div>
@@ -728,7 +784,7 @@ Be helpful, accurate, and professional in all responses.`
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    // Send Message with System Role
+    // Send Message with Selected Model
     async function sendMessage() {
       const message = messageInput.value.trim();
       if (!message || isStreaming) return;
@@ -751,11 +807,13 @@ Be helpful, accurate, and professional in all responses.`
       sendBtn.disabled = true;
 
       try {
-        // Prepare messages: system message + conversation history
         const messagesToSend = [
           SYSTEM_MESSAGE,
-          ...chat.messages.slice(0, -1) // All messages except the empty assistant one
+          ...chat.messages.slice(0, -1)
         ];
+
+        // Get selected model
+        const selectedModel = modelSelector.value;
 
         const response = await fetch(BACKEND_URL, {
           method: 'POST',
@@ -763,7 +821,8 @@ Be helpful, accurate, and professional in all responses.`
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            messages: messagesToSend
+            messages: messagesToSend,
+            preferredProvider: selectedModel // Send user's model choice
           })
         });
 
@@ -798,7 +857,7 @@ Be helpful, accurate, and professional in all responses.`
 
       } catch (error) {
         console.error('Error:', error);
-        updateLastMessage('Error: Could not connect to backend. Please check your connection and try again.');
+        updateLastMessage('Error: Could not connect to backend. Try selecting a different model or check your connection.');
       } finally {
         isStreaming = false;
         sendBtn.disabled = false;
