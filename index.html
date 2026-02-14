@@ -12,16 +12,6 @@
       <div class="sidebar-header">
         <div class="sidebar-title">BRU Multi-AI</div>
         <button class="theme-toggle" id="themeToggle">🌙</button>
-              <div class="guidance-panel">
-        <div class="guidance-title">💡 Important Information</div>
-        <div class="guidance-content">
-          <div class="tip">✅ <strong>Only Groq models are working</strong> - Use LLaMA 3.3 70B</div>
-          <div class="tip">🔄 Not responding? Press <strong>Ctrl + Shift + R</strong></div>
-          <div class="tip">⚡ Groq is fastest and most reliable</div>
-          <div class="tip">✏️ Right-click any chat to rename it</div>
-        </div>
-      </div>
-
       </div>
       
       <!-- Cloud Sync Section -->
@@ -37,10 +27,19 @@
             class="email-input" 
             id="userEmail" 
             placeholder="your@email.com"
+            autocomplete="username"
           >
+          <input 
+            type="password" 
+            class="email-input" 
+            id="userPassword" 
+            placeholder="password"
+            autocomplete="current-password"
+          >
+          <button class="sync-login-btn" id="syncLoginBtn">🔐 Login & Sync</button>
           <div class="sync-status" id="syncStatus">
-            <span>💾</span>
-            <span>Enter email to sync across devices</span>
+            <span>🔒</span>
+            <span>Enter email & password to sync</span>
           </div>
         </div>
       </div>
@@ -57,6 +56,15 @@
       </div>
       
       <!-- Guidance Panel -->
+      <div class="guidance-panel">
+        <div class="guidance-title">💡 Important Information</div>
+        <div class="guidance-content">
+          <div class="tip">✅ <strong>Only Groq models are working</strong> - Use LLaMA 3.3 70B</div>
+          <div class="tip">🔄 Not responding? Press <strong>Ctrl + Shift + R</strong></div>
+          <div class="tip">⚡ Groq is fastest and most reliable</div>
+          <div class="tip">✏️ Right-click any chat to rename it</div>
+        </div>
+      </div>
       
       <div class="footer-info">
         <div class="creator-info">Created by <strong>INEZA AIME BRUNO</strong></div>
@@ -496,6 +504,34 @@
     .email-input:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 3px var(--shadow);
+    }
+    
+    .sync-login-btn {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 8px;
+      transition: all 0.2s;
+    }
+    
+    .sync-login-btn:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+    
+    .sync-login-btn:active {
+      transform: translateY(0);
+    }
+    
+    .sync-login-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
     
     .sync-status {
@@ -1606,25 +1642,40 @@ Be helpful, accurate, thorough, and professional in all responses.`
     class SyncManager {
       constructor() {
         this.email = localStorage.getItem('syncEmail') || '';
-        this.mode = this.email ? 'cloud' : 'guest';
+        this.passwordHash = localStorage.getItem('syncPasswordHash') || '';
+        this.mode = (this.email && this.passwordHash) ? 'cloud' : 'guest';
         this.syncInterval = null;
         this.syncDebounce = null;
         this.init();
+      }
+      
+      // Hash password using SHA-256 (built into browsers!)
+      async hashPassword(password) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
       }
       
       init() {
         const toggle = document.getElementById('emailToggle');
         const inputArea = document.getElementById('emailInputArea');
         const emailInput = document.getElementById('userEmail');
+        const passwordInput = document.getElementById('userPassword');
+        const loginBtn = document.getElementById('syncLoginBtn');
         const modeBadge = document.getElementById('modeBadge');
         
-        // Load email if exists
-        if (this.email) {
+        // Load email if already logged in
+        if (this.email && this.passwordHash) {
           emailInput.value = this.email;
+          passwordInput.value = '••••••••'; // Show masked password
           inputArea.classList.add('active');
           modeBadge.textContent = 'Cloud';
           modeBadge.classList.remove('guest');
-          this.loadFromCloud();
+          loginBtn.textContent = '🔓 Logout';
+          this.updateStatus('☁️', 'Logged in - Auto-sync enabled', 'synced');
           this.startAutoSync();
         }
         
@@ -1633,38 +1684,159 @@ Be helpful, accurate, thorough, and professional in all responses.`
           inputArea.classList.toggle('active');
         });
         
-        // Handle email input
-        emailInput.addEventListener('blur', async () => {
-          const email = emailInput.value.trim();
-          
-          if (email && this.isValidEmail(email)) {
-            // Switch to cloud mode
-            this.email = email;
-            localStorage.setItem('syncEmail', email);
-            this.mode = 'cloud';
-            modeBadge.textContent = 'Cloud';
-            modeBadge.classList.remove('guest');
-            
-            await this.saveToCloud();
-            this.startAutoSync();
-          } else if (!email) {
-            // Switch back to guest mode
-            this.email = '';
-            localStorage.removeItem('syncEmail');
-            this.mode = 'guest';
-            modeBadge.textContent = 'Guest';
-            modeBadge.classList.add('guest');
-            this.stopAutoSync();
-            this.updateStatus('💾', 'Saving locally (Guest mode)');
+        // Login/Logout button
+        loginBtn.addEventListener('click', async () => {
+          if (this.mode === 'cloud') {
+            // Logout
+            this.logout();
+          } else {
+            // Login
+            await this.login();
           }
         });
         
-        // Enter key to confirm
-        emailInput.addEventListener('keypress', (e) => {
+        // Enter key to login
+        passwordInput.addEventListener('keypress', (e) => {
           if (e.key === 'Enter') {
-            emailInput.blur();
+            loginBtn.click();
           }
         });
+        
+        emailInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            passwordInput.focus();
+          }
+        });
+      }
+      
+      async login() {
+        const emailInput = document.getElementById('userEmail');
+        const passwordInput = document.getElementById('userPassword');
+        const loginBtn = document.getElementById('syncLoginBtn');
+        const modeBadge = document.getElementById('modeBadge');
+        
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+        
+        if (!email || !this.isValidEmail(email)) {
+          this.updateStatus('❌', 'Invalid email address', 'error');
+          return;
+        }
+        
+        if (!password || password.length < 4) {
+          this.updateStatus('❌', 'Password must be at least 4 characters', 'error');
+          return;
+        }
+        
+        loginBtn.disabled = true;
+        this.updateStatus('🔄', 'Logging in...', 'syncing');
+        
+        try {
+          // Hash the password
+          const passwordHash = await this.hashPassword(password);
+          
+          // Try to load data from cloud
+          const response = await fetch(`/api/load-user-data?email=${encodeURIComponent(email)}`);
+          
+          if (response.ok) {
+            const result = await response.json();
+            
+            if (result.data) {
+              // Data exists - verify password
+              if (result.data.passwordHash !== passwordHash) {
+                this.updateStatus('❌', 'Wrong password!', 'error');
+                loginBtn.disabled = false;
+                return;
+              }
+              
+              // Password correct - load data
+              this.email = email;
+              this.passwordHash = passwordHash;
+              localStorage.setItem('syncEmail', email);
+              localStorage.setItem('syncPasswordHash', passwordHash);
+              this.mode = 'cloud';
+              
+              // Load chats
+              if (result.data.chats) {
+                chats = result.data.chats;
+                localStorage.setItem('chats', JSON.stringify(chats));
+              }
+              if (result.data.currentChatId) {
+                currentChatId = result.data.currentChatId;
+                localStorage.setItem('currentChatId', result.data.currentChatId);
+              }
+              if (result.data.theme) {
+                localStorage.setItem('theme', result.data.theme);
+              }
+              if (result.data.selectedModel) {
+                localStorage.setItem('selectedModel', result.data.selectedModel);
+              }
+              
+              modeBadge.textContent = 'Cloud';
+              modeBadge.classList.remove('guest');
+              loginBtn.textContent = '🔓 Logout';
+              loginBtn.disabled = false;
+              this.updateStatus('✅', 'Logged in successfully!', 'synced');
+              
+              // Start auto-sync
+              this.startAutoSync();
+              
+              // Reload to show data
+              setTimeout(() => location.reload(), 500);
+              
+            } else {
+              // No data exists - create new account
+              this.email = email;
+              this.passwordHash = passwordHash;
+              localStorage.setItem('syncEmail', email);
+              localStorage.setItem('syncPasswordHash', passwordHash);
+              this.mode = 'cloud';
+              
+              modeBadge.textContent = 'Cloud';
+              modeBadge.classList.remove('guest');
+              loginBtn.textContent = '🔓 Logout';
+              loginBtn.disabled = false;
+              
+              // Save current chats to cloud
+              await this.saveToCloud();
+              this.updateStatus('✅', 'Account created & logged in!', 'synced');
+              
+              // Start auto-sync
+              this.startAutoSync();
+            }
+          } else {
+            throw new Error('Server error');
+          }
+          
+        } catch (error) {
+          console.error('Login error:', error);
+          this.updateStatus('❌', 'Login failed - try again', 'error');
+          loginBtn.disabled = false;
+        }
+      }
+      
+      logout() {
+        const emailInput = document.getElementById('userEmail');
+        const passwordInput = document.getElementById('userPassword');
+        const loginBtn = document.getElementById('syncLoginBtn');
+        const modeBadge = document.getElementById('modeBadge');
+        
+        // Clear credentials
+        this.email = '';
+        this.passwordHash = '';
+        localStorage.removeItem('syncEmail');
+        localStorage.removeItem('syncPasswordHash');
+        this.mode = 'guest';
+        
+        // Update UI
+        emailInput.value = '';
+        passwordInput.value = '';
+        modeBadge.textContent = 'Guest';
+        modeBadge.classList.add('guest');
+        loginBtn.textContent = '🔐 Login & Sync';
+        
+        this.stopAutoSync();
+        this.updateStatus('🔒', 'Logged out - saving locally', '');
       }
       
       isValidEmail(email) {
@@ -1684,7 +1856,7 @@ Be helpful, accurate, thorough, and professional in all responses.`
         
         // Sync every 15 seconds
         this.syncInterval = setInterval(() => {
-          if (this.email && this.mode === 'cloud') {
+          if (this.email && this.passwordHash && this.mode === 'cloud') {
             this.saveToCloud(true); // silent mode
           }
         }, 15000);
@@ -1698,7 +1870,7 @@ Be helpful, accurate, thorough, and professional in all responses.`
       }
       
       async saveToCloud(silent = false) {
-        if (!this.email || this.mode !== 'cloud') return;
+        if (!this.email || !this.passwordHash || this.mode !== 'cloud') return;
         
         if (!silent) {
           this.updateStatus('🔄', 'Syncing...', 'syncing');
@@ -1706,7 +1878,8 @@ Be helpful, accurate, thorough, and professional in all responses.`
         
         try {
           const chatData = {
-            chats: chats, // Use the global chats variable
+            passwordHash: this.passwordHash, // Store password hash with data
+            chats: chats,
             currentChatId: currentChatId,
             theme: localStorage.getItem('theme'),
             selectedModel: localStorage.getItem('selectedModel'),
@@ -1740,49 +1913,8 @@ Be helpful, accurate, thorough, and professional in all responses.`
         }
       }
       
-      async loadFromCloud() {
-        this.updateStatus('🔄', 'Loading from cloud...', 'syncing');
-        
-        try {
-          const response = await fetch(`/api/load-user-data?email=${encodeURIComponent(this.email)}`);
-          
-          if (response.ok) {
-            const result = await response.json();
-            
-            if (result.data) {
-              // Load data into global variables
-              if (result.data.chats) {
-                chats = result.data.chats;
-                localStorage.setItem('chats', JSON.stringify(chats));
-              }
-              if (result.data.currentChatId) {
-                currentChatId = result.data.currentChatId;
-                localStorage.setItem('currentChatId', result.data.currentChatId);
-              }
-              if (result.data.theme) {
-                localStorage.setItem('theme', result.data.theme);
-              }
-              if (result.data.selectedModel) {
-                localStorage.setItem('selectedModel', result.data.selectedModel);
-              }
-              
-              this.updateStatus('✅', 'Loaded from cloud', 'synced');
-              
-              // Reload page to show synced data
-              setTimeout(() => location.reload(), 500);
-            } else {
-              this.updateStatus('📤', 'No cloud data - will sync local', '');
-              this.saveToCloud();
-            }
-          }
-        } catch (error) {
-          console.error('Load error:', error);
-          this.updateStatus('⚠️', 'Load failed - using local data', 'error');
-        }
-      }
-      
       triggerSync() {
-        if (this.mode !== 'cloud' || !this.email) return;
+        if (this.mode !== 'cloud' || !this.email || !this.passwordHash) return;
         
         // Debounce sync - don't sync on every keystroke
         clearTimeout(this.syncDebounce);
