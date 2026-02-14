@@ -14,6 +14,27 @@
         <button class="theme-toggle" id="themeToggle">🌙</button>
       </div>
       
+      <!-- Cloud Sync Section -->
+      <div class="email-section">
+        <div class="email-toggle" id="emailToggle">
+          <span class="email-toggle-icon">☁️</span>
+          <span class="email-toggle-text">Cloud Sync</span>
+          <span class="mode-badge guest" id="modeBadge">Guest</span>
+        </div>
+        <div class="email-input-area" id="emailInputArea">
+          <input 
+            type="email" 
+            class="email-input" 
+            id="userEmail" 
+            placeholder="your@email.com"
+          >
+          <div class="sync-status" id="syncStatus">
+            <span>💾</span>
+            <span>Enter email to sync across devices</span>
+          </div>
+        </div>
+      </div>
+      
       <button class="new-chat-btn" id="newChatBtn">+ New Chat</button>
       <button class="image-gen-btn" id="imageGenBtn">🎨 AI Image Studio</button>
       
@@ -389,6 +410,119 @@
       box-shadow: 0 0 0 3px var(--shadow);
     }
 
+    /* Email Cloud Sync Section */
+    .email-section {
+      padding: 12px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 8px;
+    }
+    
+    .email-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    
+    .email-toggle:hover {
+      background: var(--hover-bg);
+    }
+    
+    .email-toggle-icon {
+      font-size: 18px;
+    }
+    
+    .email-toggle-text {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    
+    .mode-badge {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .mode-badge.guest {
+      background: #6b7280;
+    }
+    
+    .email-input-area {
+      margin-top: 8px;
+      display: none;
+      animation: slideDown 0.2s ease-out;
+    }
+    
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .email-input-area.active {
+      display: block;
+    }
+    
+    .email-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 13px;
+      background: var(--input-bg);
+      color: var(--text-primary);
+      margin-bottom: 6px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    
+    .email-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--shadow);
+    }
+    
+    .sync-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      padding: 4px 8px;
+      background: var(--bg-tertiary);
+      border-radius: 6px;
+    }
+    
+    .sync-status.synced { 
+      color: var(--success); 
+      background: rgba(40, 167, 69, 0.1);
+    }
+    
+    .sync-status.syncing { 
+      color: var(--orange); 
+      background: rgba(245, 158, 11, 0.1);
+    }
+    
+    .sync-status.error { 
+      color: var(--danger);
+      background: rgba(220, 53, 69, 0.1);
+    }
+
     .chat-list {
       flex: 1;
       overflow-y: auto;
@@ -587,10 +721,70 @@
     .message {
       margin-bottom: 24px;
       max-width: 800px;
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
     }
 
     .message.user {
       margin-left: auto;
+    }
+    
+    .message-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.2s;
+      margin-top: 20px;
+    }
+    
+    .message:hover .message-actions {
+      opacity: 1;
+    }
+    
+    .edit-message-btn,
+    .copy-message-btn {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .edit-message-btn:hover {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+      transform: scale(1.1);
+    }
+    
+    .copy-message-btn:hover {
+      background: var(--success);
+      color: white;
+      border-color: var(--success);
+      transform: scale(1.1);
+    }
+    
+    .edit-message-btn.editing {
+      background: var(--orange);
+      color: white;
+      border-color: var(--orange);
+    }
+    
+    .copy-message-btn.copied {
+      background: var(--success);
+      color: white;
+      border-color: var(--success);
     }
 
     .message-header {
@@ -1405,6 +1599,205 @@ Be helpful, accurate, thorough, and professional in all responses.`
     let isStreaming = false;
     let currentAttachedFile = null;
 
+    // ========================================
+    // CLOUD SYNC MANAGER
+    // ========================================
+    class SyncManager {
+      constructor() {
+        this.email = localStorage.getItem('syncEmail') || '';
+        this.mode = this.email ? 'cloud' : 'guest';
+        this.syncInterval = null;
+        this.syncDebounce = null;
+        this.init();
+      }
+      
+      init() {
+        const toggle = document.getElementById('emailToggle');
+        const inputArea = document.getElementById('emailInputArea');
+        const emailInput = document.getElementById('userEmail');
+        const modeBadge = document.getElementById('modeBadge');
+        
+        // Load email if exists
+        if (this.email) {
+          emailInput.value = this.email;
+          inputArea.classList.add('active');
+          modeBadge.textContent = 'Cloud';
+          modeBadge.classList.remove('guest');
+          this.loadFromCloud();
+          this.startAutoSync();
+        }
+        
+        // Toggle email input
+        toggle.addEventListener('click', () => {
+          inputArea.classList.toggle('active');
+        });
+        
+        // Handle email input
+        emailInput.addEventListener('blur', async () => {
+          const email = emailInput.value.trim();
+          
+          if (email && this.isValidEmail(email)) {
+            // Switch to cloud mode
+            this.email = email;
+            localStorage.setItem('syncEmail', email);
+            this.mode = 'cloud';
+            modeBadge.textContent = 'Cloud';
+            modeBadge.classList.remove('guest');
+            
+            await this.saveToCloud();
+            this.startAutoSync();
+          } else if (!email) {
+            // Switch back to guest mode
+            this.email = '';
+            localStorage.removeItem('syncEmail');
+            this.mode = 'guest';
+            modeBadge.textContent = 'Guest';
+            modeBadge.classList.add('guest');
+            this.stopAutoSync();
+            this.updateStatus('💾', 'Saving locally (Guest mode)');
+          }
+        });
+        
+        // Enter key to confirm
+        emailInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            emailInput.blur();
+          }
+        });
+      }
+      
+      isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      }
+      
+      updateStatus(icon, text, type = '') {
+        const status = document.getElementById('syncStatus');
+        if (status) {
+          status.innerHTML = `<span>${icon}</span><span>${text}</span>`;
+          status.className = `sync-status ${type}`;
+        }
+      }
+      
+      startAutoSync() {
+        if (this.syncInterval) return;
+        
+        // Sync every 15 seconds
+        this.syncInterval = setInterval(() => {
+          if (this.email && this.mode === 'cloud') {
+            this.saveToCloud(true); // silent mode
+          }
+        }, 15000);
+      }
+      
+      stopAutoSync() {
+        if (this.syncInterval) {
+          clearInterval(this.syncInterval);
+          this.syncInterval = null;
+        }
+      }
+      
+      async saveToCloud(silent = false) {
+        if (!this.email || this.mode !== 'cloud') return;
+        
+        if (!silent) {
+          this.updateStatus('🔄', 'Syncing...', 'syncing');
+        }
+        
+        try {
+          const chatData = {
+            chats: chats, // Use the global chats variable
+            currentChatId: currentChatId,
+            theme: localStorage.getItem('theme'),
+            selectedModel: localStorage.getItem('selectedModel'),
+            lastSync: new Date().toISOString()
+          };
+          
+          const response = await fetch('/api/save-user-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: this.email,
+              data: chatData
+            })
+          });
+          
+          if (response.ok) {
+            if (!silent) {
+              this.updateStatus('✅', 'Synced to cloud', 'synced');
+              setTimeout(() => {
+                this.updateStatus('☁️', 'Auto-sync enabled', 'synced');
+              }, 2000);
+            }
+          } else {
+            throw new Error('Save failed');
+          }
+        } catch (error) {
+          console.error('Sync error:', error);
+          if (!silent) {
+            this.updateStatus('⚠️', 'Sync failed - saving locally', 'error');
+          }
+        }
+      }
+      
+      async loadFromCloud() {
+        this.updateStatus('🔄', 'Loading from cloud...', 'syncing');
+        
+        try {
+          const response = await fetch(`/api/load-user-data?email=${encodeURIComponent(this.email)}`);
+          
+          if (response.ok) {
+            const result = await response.json();
+            
+            if (result.data) {
+              // Load data into global variables
+              if (result.data.chats) {
+                chats = result.data.chats;
+                localStorage.setItem('chats', JSON.stringify(chats));
+              }
+              if (result.data.currentChatId) {
+                currentChatId = result.data.currentChatId;
+                localStorage.setItem('currentChatId', result.data.currentChatId);
+              }
+              if (result.data.theme) {
+                localStorage.setItem('theme', result.data.theme);
+              }
+              if (result.data.selectedModel) {
+                localStorage.setItem('selectedModel', result.data.selectedModel);
+              }
+              
+              this.updateStatus('✅', 'Loaded from cloud', 'synced');
+              
+              // Reload page to show synced data
+              setTimeout(() => location.reload(), 500);
+            } else {
+              this.updateStatus('📤', 'No cloud data - will sync local', '');
+              this.saveToCloud();
+            }
+          }
+        } catch (error) {
+          console.error('Load error:', error);
+          this.updateStatus('⚠️', 'Load failed - using local data', 'error');
+        }
+      }
+      
+      triggerSync() {
+        if (this.mode !== 'cloud' || !this.email) return;
+        
+        // Debounce sync - don't sync on every keystroke
+        clearTimeout(this.syncDebounce);
+        this.syncDebounce = setTimeout(() => {
+          this.saveToCloud(true);
+        }, 2000);
+      }
+    }
+    
+    // Initialize sync manager
+    const syncManager = new SyncManager();
+    
+    // ========================================
+    // END CLOUD SYNC MANAGER
+    // ========================================
+
     // Elements
     const themeToggle = document.getElementById('themeToggle');
     const newChatBtn = document.getElementById('newChatBtn');
@@ -1804,6 +2197,10 @@ Be helpful, accurate, thorough, and professional in all responses.`
 
     function saveChats() {
       localStorage.setItem('chats', JSON.stringify(chats));
+      // Trigger cloud sync if in cloud mode
+      if (syncManager && syncManager.mode === 'cloud') {
+        syncManager.triggerSync();
+      }
     }
 
     function getCurrentChat() {
@@ -1908,13 +2305,25 @@ Be helpful, accurate, thorough, and professional in all responses.`
     function renderMessages(messages) {
       messagesContainer.innerHTML = messages
         .filter(msg => msg.role !== 'system')
-        .map(msg => {
+        .map((msg, index) => {
           let content = formatContent(msg.content);
           if (msg.image) {
             content += `<br><img src="${msg.image}" class="message-image" alt="Attached image">`;
           }
+          
+          // Add message actions (edit for user, copy for all)
+          const messageActions = msg.role === 'user' 
+            ? `<div class="message-actions">
+                <button class="edit-message-btn" onclick="editMessage(${index})" title="Edit message">✏️</button>
+                <button class="copy-message-btn" onclick="copyMessage(${index})" title="Copy message">📋</button>
+              </div>`
+            : `<div class="message-actions">
+                <button class="copy-message-btn" onclick="copyMessage(${index})" title="Copy message">📋</button>
+              </div>`;
+          
           return `
-            <div class="message ${msg.role}">
+            <div class="message ${msg.role}" data-index="${index}">
+              ${messageActions}
               <div class="message-header">${msg.role === 'user' ? 'You' : 'BRU AI'}</div>
               <div class="message-content">${content}</div>
             </div>
@@ -1946,6 +2355,69 @@ Be helpful, accurate, thorough, and professional in all responses.`
     function scrollToBottom() {
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
+
+    // Edit Message Function
+    window.editMessage = function(index) {
+      const chat = getCurrentChat();
+      if (!chat) return;
+      
+      const messages = chat.messages.filter(msg => msg.role !== 'system');
+      const message = messages[index];
+      
+      if (message && message.role === 'user') {
+        // Put the message content into the input
+        messageInput.value = message.content;
+        messageInput.focus();
+        
+        // Highlight the edit button
+        const editBtn = document.querySelector(`.message[data-index="${index}"] .edit-message-btn`);
+        if (editBtn) {
+          editBtn.classList.add('editing');
+          editBtn.innerHTML = '✓';
+          editBtn.title = 'Send edited message';
+        }
+        
+        // Remove all messages after this one
+        chat.messages = chat.messages.slice(0, chat.messages.indexOf(message));
+        saveChats();
+        renderMessages(chat.messages);
+        
+        // Auto-scroll to input
+        messageInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    };
+
+    // Copy Message Function
+    window.copyMessage = function(index) {
+      const chat = getCurrentChat();
+      if (!chat) return;
+      
+      const messages = chat.messages.filter(msg => msg.role !== 'system');
+      const message = messages[index];
+      
+      if (message) {
+        // Copy just the text content (no HTML)
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = message.content;
+        const textContent = tempDiv.textContent || tempDiv.innerText || '';
+        
+        navigator.clipboard.writeText(textContent).then(() => {
+          const copyBtn = document.querySelector(`.message[data-index="${index}"] .copy-message-btn`);
+          if (copyBtn) {
+            const originalContent = copyBtn.innerHTML;
+            copyBtn.innerHTML = '✓';
+            copyBtn.classList.add('copied');
+            
+            setTimeout(() => {
+              copyBtn.innerHTML = originalContent;
+              copyBtn.classList.remove('copied');
+            }, 2000);
+          }
+        }).catch(err => {
+          console.error('Failed to copy:', err);
+        });
+      }
+    };
 
     // Convert file to base64
     async function fileToBase64(file) {
